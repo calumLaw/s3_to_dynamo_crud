@@ -4,9 +4,7 @@ import base64
 import os
 
 s3 = boto3.client("s3")
-BUCKET_NAME = os.environ[
-    "BUCKET_NAME"
-]  # Assuming you've set this in your environment variables
+BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 
 def lambda_handler(event, context):
@@ -20,6 +18,19 @@ def lambda_handler(event, context):
     file_path = filename
 
     # Upload the file to S3
-    s3.put_object(Bucket=BUCKET_NAME, Key=file_path, Body=file_content)
+    try:
+        s3.put_object(Bucket=BUCKET_NAME, Key=file_path, Body=file_content)
 
-    return {"statusCode": 200, "body": json.dumps(f"File {filename} uploaded!")}
+        return {
+            "statusCode": 200,
+            "body": json.dumps(
+                f"File {filename} uploaded succesfully! Attempting to insert data into table. Please query the table to check insertion was succesful."
+            ),
+        }
+    except:
+        return {
+            "statusCode": 500,
+            "body": json.dumps(
+                f"Error. File {filename} failed to upload. Please check error logs."
+            ),
+        }

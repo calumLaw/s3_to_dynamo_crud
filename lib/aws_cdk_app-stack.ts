@@ -8,6 +8,7 @@ import { aws_s3_notifications as s3n } from 'aws-cdk-lib';
 
 
 
+
 export class AwsCdkAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -15,6 +16,8 @@ export class AwsCdkAppStack extends cdk.Stack {
     // S3 bucket with versioning enabled
     const bucket = new s3.Bucket(this, 'UploadBucket', {
       versioned: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // deletes bucket when app is destroyed
+      autoDeleteObjects: true, // bucket can't be deleted until objects are deleted
     });
 
     // Lambda function for S3 uploads
@@ -42,13 +45,13 @@ export class AwsCdkAppStack extends cdk.Stack {
       replicationRegions: ["eu-west-2", "us-east-2", "us-west-2"], // creates a "global table" through regions
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,  // or PROVISIONED. Scales throughput 
       pointInTimeRecovery: true, // provides continuous backups of the table data for the last 35 days
-      //removalPolicy: cdk.RemovalPolicy.RETAIN  // optional, retains table when stack is deleted
+      removalPolicy: cdk.RemovalPolicy.DESTROY //change to RETAIN to keep table when stack is deleted
     });
 
     // Lambda function to insert data into DynamoDB table from object uploaded into S3 bucket
     const s3ToDynamoFunction = new lambda.Function(this, 'S3ToDynamoFunction', {
       runtime: lambda.Runtime.PYTHON_3_8,
-      handler: 's3_to_dynamo.lambda_handler', // Assume it is in a file named 's3_to_dynamo.py'
+      handler: 's3_to_dynamo.lambda_handler', 
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         TABLE_NAME: table.tableName,
@@ -59,12 +62,56 @@ export class AwsCdkAppStack extends cdk.Stack {
     // Grant the Lambda function permissions to write to the DynamoDB table
     table.grantWriteData(s3ToDynamoFunction);
     bucket.grantRead(s3ToDynamoFunction);
+    bucket.grantDelete(s3ToDynamoFunction);
 
     // Set up S3 event notification
     const notification = new s3n.LambdaDestination(s3ToDynamoFunction);
     bucket.addEventNotification(s3.EventType.OBJECT_CREATED, notification);
   
 
-    // CRUD APIs 
+    // CRUD Integration 
+    
+    // Create a new Lambda function for CRUD operations
+    const crudFunction = new lambda.Function(this, 'CrudFunction', {
+      runtime: lambda.Runtime.PYTHON_3_8,
+      handler: 'crud_api.lambda_handler',
+      code: lambda.Code.fromAsset('lambda'),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+    });
+
+    // Create API Gateway for CRUD operations
+    const restApi = new apigateway.RestApi(this, 'CRUDApi');
+
+    // Create a resource for /items
+    const itemsResource = restApi.root.addResource('items');
+
+    // Add PUT method to /items
+    itemsResource.addMethod('PUT', new apigateway.LambdaIntegration(crudFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Add GET method to /items
+    itemsResource.addMethod('GET', new apigateway.LambdaIntegration(crudFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Create a resource for /items/{id}
+    const itemByIdResource = itemsResource.addResource('{id}');
+
+    // Add GET method to /items/{id}
+    itemByIdResource.addMethod('GET', new apigateway.LambdaIntegration(crudFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Add DELETE method to /items/{id}
+    itemByIdResource.addMethod('DELETE', new apigateway.LambdaIntegration(crudFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Table access for CRUD calls
+    table.grantFullAccess(crudFunction);
+
   }
 }
