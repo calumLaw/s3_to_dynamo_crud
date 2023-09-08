@@ -3,7 +3,7 @@
 ## Architecture
 
 - **S3 Bucket**: Used for file storage. Supports versioning. If object data is inserted to the table, objects are deleted via Lambda.
-- **API Gateway**: Exposes REST endpoints for file uploads and CRUD operations.
+- **API Gateway**: Exposes REST endpoints for JSON file uploads and CRUD operations.
 - **Lambda Functions**: Handles S3 file uploads, inserts data from S3 to DynamoDB and deletes object from S3, and performs CRUD operations.
 - **DynamoDB Table**: Stores the data. Configured with multi-region replication and point-in-time recovery.
 
