@@ -24,7 +24,7 @@ def lambda_handler(event, context):
 
     data = json.loads(
         s3_data
-    )  # Convert JSON string from S3 into a Python list of dictionaries
+    )  # Convert JSON from S3 into a Python list of dictionaries
 
     # Insert the data into DynamoDB
     try:
@@ -35,7 +35,7 @@ def lambda_handler(event, context):
         else:
             table.put_item(Item=data)
 
-        # Data insertion was successful; delete the S3 object
+        #  If data insertion was successful; delete the S3 object
         s3_client.delete_object(Bucket=bucket, Key=key)
 
         return {

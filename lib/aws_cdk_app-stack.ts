@@ -42,7 +42,7 @@ export class AwsCdkAppStack extends cdk.Stack {
     // DynamoDB creation 
     const table = new dynamodb.Table(this, 'Table', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
-      replicationRegions: ["eu-west-2", "us-east-2", "us-west-2"], // creates a "global table" through regions
+      replicationRegions: ["eu-west-2", "us-east-2", "us-west-2"], // creates replicas / creates a "global table" through regions
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,  // or PROVISIONED. Scales throughput 
       pointInTimeRecovery: true, // provides continuous backups of the table data for the last 35 days
       removalPolicy: cdk.RemovalPolicy.DESTROY //change to RETAIN to keep table when stack is deleted
@@ -59,7 +59,7 @@ export class AwsCdkAppStack extends cdk.Stack {
       },
     });
 
-    // Grant the Lambda function permissions to write to the DynamoDB table
+    // Grant the Lambda function permissions to write to the DynamoDB table and delete from bucket
     table.grantWriteData(s3ToDynamoFunction);
     bucket.grantRead(s3ToDynamoFunction);
     bucket.grantDelete(s3ToDynamoFunction);
@@ -71,7 +71,7 @@ export class AwsCdkAppStack extends cdk.Stack {
 
     // CRUD Integration 
     
-    // Create a new Lambda function for CRUD operations
+    // Lambda function for CRUD operations
     const crudFunction = new lambda.Function(this, 'CrudFunction', {
       runtime: lambda.Runtime.PYTHON_3_8,
       handler: 'crud_api.lambda_handler',
@@ -81,10 +81,10 @@ export class AwsCdkAppStack extends cdk.Stack {
       },
     });
 
-    // Create API Gateway for CRUD operations
+    // API Gateway for CRUD 
     const restApi = new apigateway.RestApi(this, 'CRUDApi');
 
-    // Create a resource for /items
+    // Created a resource for /items
     const itemsResource = restApi.root.addResource('items');
 
     // Add PUT method to /items
