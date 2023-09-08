@@ -52,7 +52,7 @@ curl -X POST [Your-FileUpload-API-Gateway-URL] -H "X-Filename: sample_data.json"
 ```
 OR without headers:
 ```bash
-curl -X POST [Your-FileUpload-API-Gateway-URL] --data-binary "@dir/sample_data.json"
+curl -X POST [Your-FileUpload-API-Gateway-URL] --data-binary "@path/to/sample_data.json"
 ```
 
 ### CRUD Operations via API
