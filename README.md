@@ -10,8 +10,8 @@
 ## Prerequisites to Install
 
 - Node.js
-- AWS CLI installed
-- AWS CDK
+- AWS CLI installed with your AWS Account credentials
+- AWS CDK 
 - Python
 
 ## Deployment
@@ -20,7 +20,7 @@
    ```bash
     git clone https://github.com/calumLaw/s3_to_dynamo_crud.git
     ```
-3. **Install the dependencies**:
+3. **Install the dependencies (AWS CDK) if you haven't already**:
     ```bash
     npm install aws-cdk-lib
     ```
